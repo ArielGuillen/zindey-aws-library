@@ -1,0 +1,16 @@
+{
+  "name": "zindey-aws-library",
+  "version": "1.0.5",
+  "description": "aws services module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "aws",
+    "dynamoDB",
+    "zindey"
+  ],
+  "author": "Ariel Guillen Blanco",
+  "license": "ISC"
+}
