@@ -1,6 +1,6 @@
 {
   "name": "zindey-aws-library",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "aws services module",
   "main": "index.js",
   "scripts": {
@@ -12,5 +12,8 @@
     "zindey"
   ],
   "author": "Ariel Guillen Blanco",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "uuid": "^8.3.2"
+  }
 }
