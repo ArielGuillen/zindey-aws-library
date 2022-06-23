@@ -25,17 +25,14 @@ async function createItem(ItemName, Item, TableName, Response) {
     return Response
 }
 
-async function getItemOrderedByName( Ascending, ItemName, businessId, TableName, Response) {
+async function getItemOrderedByName( Descending, ItemName, businessId, TableName, Response) {
 
     try {
         //Create the object with the Dynamo params
         var params = {
             TableName,
-            ScanIndexForward: Ascending,    //Boolean value to sort ascending if false and descending if true
-            KeyConditionExpression: '#businessId = :v_businessId',
-            ExpressionAttributeNames: {
-                '#businessId': 'businessId',
-            },
+            ScanIndexForward: Descending,    //Boolean value to sort ascending if false and descending if true
+            KeyConditionExpression: 'businessId = :v_businessId',
             ExpressionAttributeValues: {
                 ':v_businessId': businessId
             }
