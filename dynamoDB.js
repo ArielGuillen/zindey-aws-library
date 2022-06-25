@@ -18,7 +18,7 @@ async function createItem(ItemName, Item, TableName, Response) {
         console.error(error);
         Response.statusCode = 500;
         Response.body = JSON.stringify({
-            message: `Failed to create ${ItemName}`,
+            message: `Failed to create ${ItemName}.`,
             error: error.message
         });
     }
@@ -29,7 +29,7 @@ async function getItemOrderedByName( Ascending, ItemName, businessId, TableName,
 
     try {
         //Create the object with the Dynamo params
-        var params = {
+        let params = {
             TableName,
             ScanIndexForward: Ascending,    //Boolean value to sort ascending if true and descending if false
             KeyConditionExpression: 'businessId = :v_businessId',
@@ -47,24 +47,25 @@ async function getItemOrderedByName( Ascending, ItemName, businessId, TableName,
         console.error(error);
         Response.statusCode = 500;
         Response.body = JSON.stringify({
-            message: `Failed to get ${ItemName}`,
+            message: `Failed to get ${ItemName}.`,
             error: error.message
         });
     }
     return Response
 }
 
-async function getItemByName(ItemName, Name, GSIName, TableName, Response) {
+async function getItemByName(ItemName, Name, BusinessId, TableName, Response) {
 
     try {
-        const params = {
+        //Create the object with the Dynamo params
+        let params = {
             TableName,
-            IndexName : GSIName,
-            KeyConditionExpression: '#name = :v_name',
+            KeyConditionExpression: 'businessId = :v_businessId AND #name = :v_name',
             ExpressionAttributeNames: {
-                '#name': 'name',
+                '#name': 'name'
             },
             ExpressionAttributeValues: {
+                ':v_businessId': BusinessId,
                 ':v_name': Name
             }
         };
@@ -79,7 +80,7 @@ async function getItemByName(ItemName, Name, GSIName, TableName, Response) {
         console.error(error);
         Response.statusCode = 500;
         Response.body = JSON.stringify({
-            message: `Failed to get ${ItemName}`,
+            message: `Failed to get ${ItemName}.`,
             error: error.message
         });
     }

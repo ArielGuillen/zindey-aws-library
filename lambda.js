@@ -2,7 +2,7 @@ const { Lambda } = require('aws-sdk');
 const lambda = new Lambda();
 
 // --------------------- Lambda Operations --------------------------
-async function InvokeLambdaFunction(FunctionName, item) {
+async function Invoke(FunctionName, item) {
     //Create the object to invoke the validation lambda
     let lambdaParams = {
         FunctionName,
@@ -18,5 +18,5 @@ async function InvokeLambdaFunction(FunctionName, item) {
 }
 
 module.exports = {
-    InvokeLambdaFunction
+    Invoke
 };

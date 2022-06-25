@@ -1,6 +1,6 @@
 {
   "name": "zindey-aws-library",
-  "version": "1.0.7",
+  "version": "1.0.15",
   "description": "aws services module",
   "main": "index.js",
   "scripts": {
