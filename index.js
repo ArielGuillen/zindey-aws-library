@@ -1,9 +1,11 @@
-const dynamoDB = require( './dynamoDB' )
-const lambda = require( './lambda' )
-const item = require( './item' )
+import item from'./item'
+import lambda from'./lambda'
+import dynamoDB from'./dynamoDB'
 
-module.exports = {
-    dynamoDB,
-    lambda,
-    item  
+const zindeyAWS = {
+  item,
+  lambda,
+  dynamoDB,
 }
+
+export default zindeyAWS
