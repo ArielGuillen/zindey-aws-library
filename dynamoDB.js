@@ -3,82 +3,112 @@ import { DynamoDB } from 'aws-sdk'
 const dynamo = new DynamoDB.DocumentClient()
 
 // --------------------- Dynamo Operations --------------------------
-const createItem = async (ItemName, Item, TableName, Response) => {
+
+/**
+ * @description
+ * @param {string} ItemName
+ * @param {Object} Item
+ * @param {string} TableName
+ * @returns {Object}
+ */
+const createItem = async (ItemName, Item, TableName) => {
+  let response = {}
   try {
     await dynamo.put({
       TableName,
       Item
     }).promise()
-    Response.body = JSON.stringify({
+    response.body = JSON.stringify({
       message: `${ItemName} created successfully.`,
       item: Item
     })
   } catch (error) {
     console.error(error);
-    Response.statusCode = 500;
-    Response.body = JSON.stringify({
+    response.statusCode = 500;
+    response.body = JSON.stringify({
       message: `Failed to create ${ItemName}.`,
       error: error.message
     })
   }
-  return Response
+  return response
 }
 
-const getItemOrderedByName = async ( Ascending, ItemName, businessId, TableName, Response) => {
-  try {
-    //Create the object with the Dynamo params
-    let params = {
-      TableName,
-      ScanIndexForward: Ascending,    //Boolean value to sort ascending if true and descending if false
-      KeyConditionExpression: 'businessId = :v_businessId',
-      ExpressionAttributeValues: {
-        ':v_businessId': businessId
-      }
+/**
+ * @description
+ * @param {boolean} Sorting
+ * @param {string} ItemName
+ * @param {string} BusinessId
+ * @param {string} TableName
+ * @returns {Object}
+ */
+const getItemOrderedByName = async ( Sorting, ItemName, BusinessId, TableName) => {
+  let response = {}
+
+  //Create the object with the Dynamo params
+  let params = {
+    TableName,
+    ScanIndexForward: Sorting,    // Boolean value to sort -> ascending if true, descending if false
+    KeyConditionExpression: 'businessId = :v_businessId',
+    ExpressionAttributeValues: {
+      ':v_businessId': BusinessId
     }
-    const result = await dynamo.query(params).promise();
-    Response.body = JSON.stringify({ 
+  }
+
+  try {
+    const result = await dynamo.query(params).promise()
+    response.body = JSON.stringify({
       message: `Get ${ItemName} successfully.`,
       result
     })
   } catch (error) {
     console.error(error);
-    Response.statusCode = 500;
-    Response.body = JSON.stringify({
+    response.statusCode = 500;
+    response.body = JSON.stringify({
       message: `Failed to get ${ItemName}.`,
       error: error.message
     })
   }
-  return Response
+  return response
 }
 
-const getItemByName = async(ItemName, Name, BusinessId, TableName, Response) => {
-  try {
-    //Create the object with the Dynamo params
-    let params = {
-      TableName,
-      KeyConditionExpression: 'businessId = :v_businessId AND #name = :v_name',
-      ExpressionAttributeNames: {
-        '#name': 'name'
-      },
-      ExpressionAttributeValues: {
-        ':v_businessId': BusinessId,
-        ':v_name': Name
-      }
+/**
+ * @description
+ * @param {string} ItemName
+ * @param {Object} Name
+ * @param {string} BusinessId
+ * @param {string} TableName
+ * @returns {Object}
+ */
+const getItemByName = async(ItemName, Name, BusinessId, TableName) => {
+  let response = {}
+
+  //Create the object with the Dynamo params
+  let params = {
+    TableName,
+    KeyConditionExpression: 'businessId = :v_businessId AND #name = :v_name',
+    ExpressionAttributeNames: {
+      '#name': 'name'
+    },
+    ExpressionAttributeValues: {
+      ':v_businessId': BusinessId,
+      ':v_name': Name
     }
+  }
+  try {
     const result = await dynamo.query(params).promise();
-    Response.body = JSON.stringify({
+    response.body = JSON.stringify({
       message: `Get ${ItemName} successfully.`,
       result
     })
   } catch (error) {
     console.error(error);
-    Response.statusCode = 500;
-    Response.body = JSON.stringify({
+    response.statusCode = 500;
+    response.body = JSON.stringify({
       message: `Failed to get ${ItemName}.`,
       error: error.message
     })
   }
-  return Response
+  return response
 }
 
 const dynamoDB = {

@@ -1,6 +1,6 @@
 import { Lambda } from 'aws-sdk'
 
-const lambda = new Lambda()
+const lambdaObj = new Lambda()
 
 // --------------------- Lambda Operations --------------------------
 /**
@@ -18,7 +18,7 @@ const Invoke = async (FunctionName, item) => {
     Payload: JSON.stringify({ item })
   }
   //Invoke lambda item_validation to check if the item name already exists
-  const { Payload } = await lambda.invoke(lambdaParams).promise()
+  const { Payload } = await lambdaObj.invoke(lambdaParams).promise()
   const { body } = JSON.parse(Payload)
   const lambdaResult = JSON.parse(body)
   return lambdaResult

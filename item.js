@@ -2,6 +2,13 @@ import uuid from 'uuid'
 
 import dynamoDB from './dynamoDB'
 
+/**
+ * @description
+ * @param {string} ItemName
+ * @param {Object} Body
+ * @param {string} TableName
+ * @returns {Object}
+ */
 const create_one = async (ItemName, Body, TableName) => {
   let validationResponse = {}
   //create the response object
@@ -30,7 +37,7 @@ const create_one = async (ItemName, Body, TableName) => {
       ...Body
     }
     try {
-      response = await dynamoDB.createItem(ItemName, newItem, TableName, response)
+      response = await dynamoDB.createItem(ItemName, newItem, TableName)
     } catch (error) {
       console.error(error)
       response.statusCode = 500
@@ -49,6 +56,14 @@ const create_one = async (ItemName, Body, TableName) => {
   return response
 }
 
+/**
+ * @description
+ * @param {string} ItemName
+ * @param {string} Name
+ * @param {string} BusinessId
+ * @param {string} TableName
+ * @returns {Object}
+ */
 const get_by_name = async (ItemName, Name, BusinessId, TableName) => {
   //create the response object
   let response = {
@@ -58,7 +73,7 @@ const get_by_name = async (ItemName, Name, BusinessId, TableName) => {
     body: JSON.stringify({ message: `Get ${ItemName}.` })
   }
   try {
-    response = await dynamoDB.getItemByName(ItemName, Name, BusinessId, TableName, response)
+    response = await dynamoDB.getItemByName(ItemName, Name, BusinessId, TableName)
   } catch (error) {
     console.error(error)
     response.statusCode = 500
@@ -70,6 +85,14 @@ const get_by_name = async (ItemName, Name, BusinessId, TableName) => {
   return response
 }
 
+/**
+ * @description
+ * @param {string} ItemName
+ * @param {string} Order
+ * @param {string} BusinessId
+ * @param {string} TableName
+ * @returns {Object}
+ */
 const get_ordered = async (ItemName, Order, BusinessId, TableName) => {
   //create the response object
   let response = {
@@ -81,12 +104,9 @@ const get_ordered = async (ItemName, Order, BusinessId, TableName) => {
   try {
     //Parse ORDER String to a boolean value
     //True:Ascending  - False:descending
-    let ascending
-    if (Order == 'DESC')
-      ascending = false
-    else
-      ascending = true
-    response = await dynamoDB.getItemOrderedByName(ascending, ItemName, BusinessId, TableName, response)
+    let sorting = Order == 'DESC' ?
+      false : true
+    response = await dynamoDB.getItemOrderedByName(sorting, ItemName, BusinessId, TableName)
   } catch (error) {
       console.error(error)
       response.statusCode = 500
@@ -98,6 +118,14 @@ const get_ordered = async (ItemName, Order, BusinessId, TableName) => {
   return response
 }
 
+/**
+ * @description
+ * @param {string} ItemName
+ * @param {string} Name
+ * @param {string} BusinessId
+ * @param {string} TableName
+ * @returns {Object}
+ */
 const validate_name = async (ItemName, Name, BusinessId, TableName) => {
   let response = {
     statusCode: 200,
