@@ -48,7 +48,29 @@ async function create_one(ItemName, Body, TableName) {
     }
     return response;
 }
+async function get_all(ItemName, Name, Limit, BusinessId, TableName) {
+    
+    //create the response object
+    let response = {
+        statusCode: 200,
+        isBase64Encoded: false,
+        headers: { 'Content-Type': 'application/json;charset=UTF-8' },
+        body: JSON.stringify({ message: `Get all ${ItemName}.` })
+    };
 
+    try {
+        response = await dynamoDB.getItems(ItemName, Name, Limit, BusinessId, TableName, response);
+    } catch (error) {
+        console.error(error);
+        response.statusCode = 500;
+        response.body = JSON.stringify({
+            message: `Failed to get ${ItemName}.`,
+            error: error.message
+        });
+    }
+
+    return response;
+}
 async function get_by_name(ItemName, Name, BusinessId, TableName) {
     
     //create the response object
@@ -116,9 +138,9 @@ async function validate_name(ItemName, Name, BusinessId, TableName) {
 
     try {
         response = await get_by_name(ItemName, Name, BusinessId, TableName);
-        let { result } = JSON.parse( response.body );
+        let result = JSON.parse( response.body );
         // Check if the result.Count contain a value, the name already exists
-        if (result.Count == 0){
+        if (result.count == 0){
             response.body = JSON.stringify({
                 status: true,
                 message: `${ItemName} name ${Name} available.`,
@@ -128,7 +150,8 @@ async function validate_name(ItemName, Name, BusinessId, TableName) {
             response.statusCode = 403;
             response.body = JSON.stringify({
                 status: false,
-                message: `${ItemName} ${Name} already exists.`
+                message: `${ItemName} ${Name} already exists.`,
+                item: result.Items[0]
             });
         }
     } catch (error) {
@@ -145,6 +168,7 @@ async function validate_name(ItemName, Name, BusinessId, TableName) {
 
 module.exports = {
     create_one,
+    get_all,
     get_by_name,
     get_ordered,
     validate_name
