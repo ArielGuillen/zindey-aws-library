@@ -22,7 +22,7 @@ async function create_one(ItemName, Body, TableName) {
             error: error.message
         })
     }
-    const {status} = JSON.parse(validationResponse.body);
+    const { status } = JSON.parse(validationResponse.body);
     if (status) {
         const id = uuid.v4();
         const newItem = {
@@ -48,8 +48,8 @@ async function create_one(ItemName, Body, TableName) {
     }
     return response;
 }
-async function get_all(ItemName, Name, Limit, BusinessId, TableName) {
-    
+async function get_all(ItemName, StartKey, Limit, BusinessId, TableName) {
+
     //create the response object
     let response = {
         statusCode: 200,
@@ -59,7 +59,7 @@ async function get_all(ItemName, Name, Limit, BusinessId, TableName) {
     };
 
     try {
-        response = await dynamoDB.getItems(ItemName, Name, Limit, BusinessId, TableName, response);
+        response = await dynamoDB.getItems(ItemName, StartKey, Limit, BusinessId, TableName, response);
     } catch (error) {
         console.error(error);
         response.statusCode = 500;
@@ -72,7 +72,7 @@ async function get_all(ItemName, Name, Limit, BusinessId, TableName) {
     return response;
 }
 async function get_by_name(ItemName, Name, BusinessId, TableName) {
-    
+
     //create the response object
     let response = {
         statusCode: 200,
@@ -94,7 +94,6 @@ async function get_by_name(ItemName, Name, BusinessId, TableName) {
 
     return response;
 }
-
 async function get_ordered(ItemName, Order, BusinessId, TableName) {
 
     //create the response object
@@ -126,9 +125,53 @@ async function get_ordered(ItemName, Order, BusinessId, TableName) {
 
     return response;
 }
+async function update_one(ItemName, Req, BusinessId, Id, TableName) {
+
+    let validationResponse = {}
+    //create the response object
+    let response = {
+        statusCode: 200,
+        isBase64Encoded: false,
+        headers: { 'Content-Type': 'application/json;charset=UTF-8' },
+        body: JSON.stringify({ message: `Update ${ItemName}.` })
+    };
+
+    // Validate name before update
+    try {
+        validationResponse = await validate_name(ItemName, Body?.name, Body?.businessId, TableName)
+    } catch (error) {
+        response.statusCode = 500
+        response.body = JSON.stringify({
+            message: "Failed to validate item.",
+            error: error.message
+        })
+    }
+    //Check response
+    const { status, item } = JSON.parse(validationResponse.body);
+    if (status || item.id === Id) {
+        const ItemParams = Object.keys(Req);
+        try {
+            response = await dynamoDB.updateItem(ItemName, ItemParams, BusinessId, Id, TableName, response);
+        } catch (error) {
+            console.error(error);
+            response.statusCode = 500;
+            response.body = JSON.stringify({
+                message: `Failed to create ${ItemName}`,
+                error: error.message
+            });
+        }
+    } else {
+        response.statusCode = 403
+        response.body = JSON.stringify({
+            message: "Failed to update item.",
+            error: `Item "${Name}" already exists.`,
+        })
+    }
+    return response
+}
 
 async function validate_name(ItemName, Name, BusinessId, TableName) {
-    
+
     let response = {
         statusCode: 200,
         isBase64Encoded: false,
@@ -138,9 +181,9 @@ async function validate_name(ItemName, Name, BusinessId, TableName) {
 
     try {
         response = await get_by_name(ItemName, Name, BusinessId, TableName);
-        let result = JSON.parse( response.body );
+        let result = JSON.parse(response.body);
         // Check if the result.Count contain a value, the name already exists
-        if (result.count == 0){
+        if (result.count == 0) {
             response.body = JSON.stringify({
                 status: true,
                 message: `${ItemName} name ${Name} available.`,
@@ -171,5 +214,6 @@ module.exports = {
     get_all,
     get_by_name,
     get_ordered,
+    update_one,
     validate_name
 };

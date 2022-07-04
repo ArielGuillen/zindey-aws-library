@@ -29,11 +29,10 @@ async function createItem(ItemName, Item, TableName, Response) {
 async function getItemByName(ItemName, Name, BusinessId, TableName, Response) {
 
     try {
-
-        
         //Create the object with the Dynamo params
         let params = {
             TableName,
+            IndexName : 'GSIFindByName',
             KeyConditionExpression: 'businessId = :v_businessId AND #name = :v_name',
             ExpressionAttributeNames: {
                 '#name': 'name'
@@ -68,6 +67,7 @@ async function getItemOrderedByName( Ascending, ItemName, businessId, TableName,
         //Create the object with the Dynamo params
         let params = {
             TableName,
+            IndexName : 'GSIFindByName',
             ScanIndexForward: Ascending,    //Boolean value to sort ascending if true and descending if false
             KeyConditionExpression: 'businessId = :v_businessId',
             ExpressionAttributeValues: {
@@ -92,7 +92,7 @@ async function getItemOrderedByName( Ascending, ItemName, businessId, TableName,
     return Response
 }
 
-async function getItems( ItemName, Name, Limit, BusinessId, TableName, Response){
+async function getItems( ItemName, Limit, StartKey, BusinessId, TableName, Response){
 
     try{
         //Create the object with the Dynamo params
@@ -114,7 +114,7 @@ async function getItems( ItemName, Name, Limit, BusinessId, TableName, Response)
                 Limit,
                 ExclusiveStartKey: {
                     "businessId": BusinessId,
-                    "name": Name
+                    "id": Id
                 },
                 KeyConditionExpression: 'businessId = :v_businessId',
                 ExpressionAttributeValues: {
@@ -148,10 +148,43 @@ async function getItems( ItemName, Name, Limit, BusinessId, TableName, Response)
     return Response;
 }
 
+async function updateItem(ItemName, ItemParams, BusinessId, Id, TableName, Response) {
+
+    const params = {
+        TableName,
+        Key: {
+            businessId: BusinessId,
+            id: Id
+        },
+        UpdateExpression: `SET ${ItemParams.map((key) => `#${key} = :${key}`).join(",")}`,
+        ExpressionAttributeNames: ItemParams.reduce((acc, key) => ({ ...acc, [`#${key}`]: key }), {}),
+        ExpressionAttributeValues: ItemParams.reduce((acc, key) => ({ ...acc, [`:${key}`]: Req[key] }), {}),
+        ReturnValues: "UPDATED_NEW",
+    }
+    try {
+        await db.update(params).promise()
+        Response.body = JSON.stringify({
+            message: `${ItemName} updated successfully.`,
+            key: {
+                businessId: BusinessId,
+                id: Id
+            },
+            itemData: Req,
+        })
+    } catch (error) {
+        console.error(error)
+        Response.statusCode = 500
+        Response.body = JSON.stringify({
+            message: `Failed to update ${ItemName}.`,
+            error: error.message
+        })
+    }
+}
+
 module.exports = {
     createItem,
     getItemByName,
     getItemOrderedByName,
     getItems,
-    get_all
+    updateItem
 };
