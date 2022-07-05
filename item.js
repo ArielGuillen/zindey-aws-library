@@ -1,7 +1,14 @@
 const dynamoDB = require('./dynamoDB');
 const uuid = require('uuid');
 
-async function create_one(ItemName, Body, TableName) {
+/**
+ * @description
+ * @param {string} ItemName
+ * @param {Object} Body
+ * @param {string} TableName
+ * @returns {Object}
+ */
+const create_one = async (ItemName, Body, TableName) => {
 
     let validationResponse = {};
     //create the response object
@@ -48,7 +55,46 @@ async function create_one(ItemName, Body, TableName) {
     }
     return response;
 }
-async function get_all(ItemName, StartKey, Limit, BusinessId, TableName) {
+
+
+/**
+ * @description
+ * @param {string} ItemName
+ * @param {string} Id
+ * @param {string} BusinessId
+ * @param {string} TableName
+ * @returns {Object}
+ */
+const delete_one = async (ItemName, Id, BusinessId, TableName) => {
+    let response = {
+        isBase64Encoded: false,
+        statusCode: 200,
+        body: JSON.stringify({ message: `Delete ${ItemName}.` }),
+        headers: { 'Content-Type': 'application/json;charset=UTF-8' }
+    }
+    try {
+        response = await dynamoDB.deleteItem(ItemName, Id, BusinessId, TableName, response)
+    } catch (error) {
+        console.log(error)
+        response.statusCode = 500
+        response.body = JSON.stringify({
+            message: `Failed to delete ${ItemName}.`,
+            error: error.message
+        })
+    }
+    return response
+}
+
+/**
+ * @description
+ * @param {string} ItemName
+ * @param {string} StartKey
+ * @param {string} Limit
+ * @param {string} BusinessId
+ * @param {string} TableName
+ * @returns {Object}
+ */
+const get_all = async (ItemName, StartKey, Limit, BusinessId, TableName) => {
 
     //create the response object
     let response = {
@@ -71,7 +117,16 @@ async function get_all(ItemName, StartKey, Limit, BusinessId, TableName) {
 
     return response;
 }
-async function get_by_name(ItemName, Name, BusinessId, TableName) {
+
+/**
+ * @description
+ * @param {string} ItemName
+ * @param {Object} Name
+ * @param {string} BusinessId
+ * @param {string} TableName
+ * @returns {Object}
+ */
+const get_by_name = async (ItemName, Name, BusinessId, TableName) => {
 
     //create the response object
     let response = {
@@ -94,7 +149,16 @@ async function get_by_name(ItemName, Name, BusinessId, TableName) {
 
     return response;
 }
-async function get_ordered(ItemName, Order, BusinessId, TableName) {
+
+/**
+ * @description
+ * @param {string} ItemName
+ * @param {string} Order    Send DESC for descending order
+ * @param {string} BusinessId
+ * @param {string} TableName
+ * @returns {Object}
+ */
+const get_ordered = async (ItemName, Order, BusinessId, TableName) => {
 
     //create the response object
     let response = {
@@ -106,13 +170,9 @@ async function get_ordered(ItemName, Order, BusinessId, TableName) {
     try {
         //Parse ORDER String to a boolean value
         //True:Ascending  - False:descending
-        let ascending;
-        if (Order == 'DESC')
-            ascending = false;
-        else
-            ascending = true;
-
-        response = await dynamoDB.getItemOrderedByName(ascending, ItemName, BusinessId, TableName, response);
+        let sorting = Order == 'DESC' ?
+            false : true
+        response = await dynamoDB.getItemOrderedByName(sorting, ItemName, BusinessId, TableName, response);
 
     } catch (error) {
         console.error(error);
@@ -125,10 +185,21 @@ async function get_ordered(ItemName, Order, BusinessId, TableName) {
 
     return response;
 }
-async function update_one(ItemName, Req, BusinessId, Id, TableName) {
+
+/**
+ * @description
+ * @param {string} ItemName
+ * @param {Object} Req
+ * @param {string} BusinessId
+ * @param {string} Id
+ * @param {string} TableName
+ * @returns {Object}
+ */
+const update_one = async (ItemName, Req, BusinessId, Id, TableName) => {
 
     let validationResponse = {}
     //create the response object
+    
     let response = {
         statusCode: 200,
         isBase64Encoded: false,
@@ -138,7 +209,7 @@ async function update_one(ItemName, Req, BusinessId, Id, TableName) {
 
     // Validate name before update
     try {
-        validationResponse = await validate_name(ItemName, Body?.name, Body?.businessId, TableName)
+        validationResponse = await validate_name(ItemName, Req?.name, BusinessId, TableName)
     } catch (error) {
         response.statusCode = 500
         response.body = JSON.stringify({
@@ -146,31 +217,39 @@ async function update_one(ItemName, Req, BusinessId, Id, TableName) {
             error: error.message
         })
     }
-    //Check response
-    const { status, item } = JSON.parse(validationResponse.body);
-    if (status || item.id === Id) {
-        const ItemParams = Object.keys(Req);
-        try {
-            response = await dynamoDB.updateItem(ItemName, ItemParams, BusinessId, Id, TableName, response);
-        } catch (error) {
-            console.error(error);
-            response.statusCode = 500;
+    try{
+        //Check response
+        const { status, item } = JSON.parse(validationResponse.body);
+        if (status || item.id == Id) {
+            const ItemParams = Object.keys(Req);
+            response = await dynamoDB.updateItem(ItemName, ItemParams, Req, BusinessId, Id, TableName, response);
+        } else {
+            response.statusCode = 403;
             response.body = JSON.stringify({
-                message: `Failed to create ${ItemName}`,
-                error: error.message
-            });
+                message: "Failed to update item.",
+                error: `Item "${Name}" already exists.`,
+            })
         }
-    } else {
-        response.statusCode = 403
+    } catch (error) {
+        console.error(error);
+        response.statusCode = 500;
         response.body = JSON.stringify({
-            message: "Failed to update item.",
-            error: `Item "${Name}" already exists.`,
-        })
+            message: `Failed to update ${ItemName}`,
+            error: error.message
+        });
     }
-    return response
+    return response;
 }
 
-async function validate_name(ItemName, Name, BusinessId, TableName) {
+/**
+ * @description
+ * @param {string} ItemName
+ * @param {string} Name
+ * @param {string} BusinessId
+ * @param {string} TableName
+ * @returns {Object}
+ */
+const validate_name = async (ItemName, Name, BusinessId, TableName) => {
 
     let response = {
         statusCode: 200,
@@ -194,7 +273,7 @@ async function validate_name(ItemName, Name, BusinessId, TableName) {
             response.body = JSON.stringify({
                 status: false,
                 message: `${ItemName} ${Name} already exists.`,
-                item: result.Items[0]
+                item: result.items[0]
             });
         }
     } catch (error) {
@@ -211,6 +290,7 @@ async function validate_name(ItemName, Name, BusinessId, TableName) {
 
 module.exports = {
     create_one,
+    delete_one,
     get_all,
     get_by_name,
     get_ordered,
