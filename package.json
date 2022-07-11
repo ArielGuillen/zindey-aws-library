@@ -17,6 +17,10 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.118.1",
     "@aws-sdk/client-lambda": "^3.118.1",
+    "csvtojson": "^2.0.10",
     "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "jest": "^28.1.2"
   }
 }

@@ -1,32 +1,36 @@
 import { DynamoDB } from 'aws-sdk'
 
-const dynamo = new DynamoDB.DocumentClient()
+const dynamo = new DynamoDB.DocumentClient({
+  region: 'local',
+  endpoint: 'http://host.docker.internal:8000'
+})
 
 // --------------------- Dynamo Operations --------------------------
 
 /**
  * @description
- * @param {string} ItemName
- * @param {Object} Item
- * @param {string} TableName
- * @returns {Object}
+ * @param {Object} options
+ * @param {String} options.ItemName
+ * @param {Object} options.Item
+ * @param {String} options.TableName
+ * @returns {Object} response
  */
-const createItem = async (ItemName, Item, TableName) => {
+const createItem = async (options) => {
   let response = {}
   try {
     await dynamo.put({
-      TableName,
-      Item
+      TableName: options?.TableName,
+      Item: options?.Item
     }).promise()
     response.body = JSON.stringify({
-      message: `${ItemName} created successfully.`,
-      item: Item
+      message: `${options?.ItemName} created successfully.`,
+      item: options?.Item
     })
   } catch (error) {
     console.error(error);
     response.statusCode = 500;
     response.body = JSON.stringify({
-      message: `Failed to create ${ItemName}.`,
+      message: `Failed to create ${options?.ItemName}.`,
       error: error.message
     })
   }
@@ -149,13 +153,14 @@ const getItemOrderedByName = async ( Sorting, ItemName, BusinessId, TableName) =
 
 /**
  * @description
- * @param {string} ItemName
- * @param {Object} Name
- * @param {string} BusinessId
- * @param {string} TableName
+ * @param {Object} options
+ * @param {string} options.ItemName
+ * @param {String} options.Name
+ * @param {string} options.BusinessId
+ * @param {string} options.TableName
  * @returns {Object}
  */
-const getItemByName = async(ItemName, Name, BusinessId, TableName) => {
+const getItemByName = async(options) => {
   let response = {}
 
   //Create the object with the Dynamo params
@@ -166,21 +171,21 @@ const getItemByName = async(ItemName, Name, BusinessId, TableName) => {
       '#name': 'name'
     },
     ExpressionAttributeValues: {
-      ':v_businessId': BusinessId,
-      ':v_name': Name
+      ':v_businessId': options?.BusinessId,
+      ':v_name': options?.Name
     }
   }
   try {
-    const result = await dynamo.query(params).promise();
+    const result = await dynamo.query(params).promise()
     response.body = JSON.stringify({
-      message: `Get ${ItemName} successfully.`,
+      message: `Get ${options?.ItemName} successfully.`,
       result
     })
   } catch (error) {
     console.error(error);
     response.statusCode = 500;
     response.body = JSON.stringify({
-      message: `Failed to get ${ItemName}.`,
+      message: `Failed to get ${options?.ItemName}.`,
       error: error.message
     })
   }
