@@ -5,199 +5,203 @@ const dynamo = new DynamoDB.DocumentClient();
 // --------------------- Dynamo Operations --------------------------
 /**
  * @description
- * @param {string} ItemName
- * @param {Object} Item
- * @param {string} TableName
- * @param {Object} Response
+ * @param {Object} params           Object with the parmameters required
+ * @param {string} params.ItemName
+ * @param {Object} params.Item
+ * @param {string} params.TableName
+ * @param {Object} params.Response  Object with the response format to lambda functions
  * @returns {Object}
  */
-const createItem = async (ItemName, Item, TableName, Response) => {
+const createItem = async (params) => {
 
     try {
         await dynamo.put({
-            TableName,
-            Item
+            TableName: params?.TableName,
+            Item: params?.Item
         }).promise();
 
-        Response.body = JSON.stringify({
-            message: `${ItemName} created successfully.`,
+        params?.Response.body = JSON.stringify({
+            message: `${params?.ItemName} created successfully.`,
             item: Item
         });
     } catch (error) {
         console.error(error);
-        Response.statusCode = 500;
-        Response.body = JSON.stringify({
-            message: `Failed to create ${ItemName}.`,
+        params?.Response.statusCode = 500;
+        params?.Response.body = JSON.stringify({
+            message: `Failed to create ${params?.ItemName}.`,
             error: error.message
         });
     }
-    return Response
+    return params?.Response
 }
 
 /**
  * @description
- * @param {string} ItemName
- * @param {Object} Item
- * @param {string} TableName
- * @param {Object} Response
+ * @param {Object} params           Object with the parmameters required
+ * @param {string} params.ItemName
+ * @param {Object} params.Key
+ * @param {string} params.TableName
+ * @param {Object} params.Response  Object with the response format to lambda functions
  * @returns {Object}
  */
-const deleteItem = async (ItemName, Id, BusinessId, TableName, Response) => {
+const deleteItem = async (params) => {
 
-    const params = {
-        TableName,
-        Key: {
-            businessId: BusinessId,
-            id: Id
-        },
+    const dynamoParams = {
+        TableName: params?.TableName,
+        Key: params?.Key
     }
     try {
-        await dynamo.delete(params).promise()
-        Response.body = JSON.stringify({ message: `${ItemName} deleted successfully.` })
+        await dynamo.delete(dynamoParams).promise()
+        params?.Response.body = JSON.stringify({ message: `${params?.ItemName} deleted successfully.` })
     } catch (error) {
         console.error(error);
-        Response.statusCode = 500;
-        Response.body = JSON.stringify({
-            message: `Failed to delete ${ItemName}.`,
+        params?.Response.statusCode = 500;
+        params?.Response.body = JSON.stringify({
+            message: `Failed to delete ${params?.ItemName}.`,
             error: error.message
         });
     }
-    return Response
+    return params?.Response
 }
 
 /**
  * @description
- * @param {string} ItemName
- * @param {Object} Name
- * @param {string} BusinessId
- * @param {string} TableName
- * @param {Object} Response
+ * @param {Object} params           Object with the parmameters required
+ * @param {string} params.ItemName
+ * @param {string} params.GSIName          // GSI Name to query from an attribute
+ * @param {string} params.AttributeName    // Attribute to find
+ * @param {string} params.AttributeValue   // Attribute value to find
+ * @param {string} params.BusinessId
+ * @param {string} params.TableName
+ * @param {Object} params.Response  Object with the response format to lambda functions
  * @returns {Object}
  */
-const getItemByName = async (ItemName, Name, BusinessId, TableName, Response) => {
+const getItemByAttribute = async (params) => {
 
     try {
         //Create the object with the Dynamo params
-        let params = {
-            TableName,
-            IndexName: 'GSIFindByName',
-            KeyConditionExpression: 'businessId = :v_businessId AND #name = :v_name',
+        let dynamoParams = {
+            TableName: params?.TableName,
+            IndexName: params?.GSIName,
+            KeyConditionExpression: 'businessId = :v_businessId AND #attName = :v_attribute',
             ExpressionAttributeNames: {
-                '#name': 'name'
+                '#attName': params?.AttributeName
             },
             ExpressionAttributeValues: {
-                ':v_businessId': BusinessId,
-                ':v_name': Name
+                ':v_businessId': params?.BusinessId,
+                ':v_attribute': params?.AttributeValue
             }
         };
 
-        const result = await dynamo.query(params).promise();
-        Response.body = JSON.stringify({
-            message: `Get ${ItemName} successfully.`,
+        const result = await dynamo.query(dynamoParams).promise();
+        params?.Response.body = JSON.stringify({
+            message: `Get ${params?.ItemName} successfully.`,
             count: result.Count,
             items: result.Items
         });
 
     } catch (error) {
         console.error(error);
-        Response.statusCode = 500;
-        Response.body = JSON.stringify({
-            message: `Failed to get ${ItemName}.`,
+        params?.Response.statusCode = 500;
+        params?.Response.body = JSON.stringify({
+            message: `Failed to get ${params?.ItemName}.`,
             error: error.message
         });
     }
-    return Response
+    return params?.Response
 }
 
 /**
  * @description
- * @param {boolean} Sorting
- * @param {string} ItemName
- * @param {string} BusinessId
- * @param {string} TableName
- * @param {Object} Response
+ * @param {Object} params           Object with the parmameters required
+ * @param {boolean} params.Sorting
+ * @param {string} params.ItemName
+ * @param {string} params.BusinessId
+ * @param {string} params.TableName
+ * @param {Object} params.Response  Object with the response format to lambda functions
  * @returns {Object}
  */
-const getItemOrderedByName = async (Sorting, ItemName, BusinessId, TableName, Response) => {
+const getItemOrderedByGSI = async (params) => {
 
     try {
         //Create the object with the Dynamo params
-        let params = {
-            TableName,
-            IndexName: 'GSIFindByName',
-            ScanIndexForward: Sorting,    //Boolean value to sort ascending if true and descending if false
+        let dynamoParams = {
+            TableName: params?.TableName,
+            IndexName: params?.GSIName,
+            ScanIndexForward: params?.Sorting,    //Boolean value to sort ascending if true and descending if false
             KeyConditionExpression: 'businessId = :v_businessId',
             ExpressionAttributeValues: {
-                ':v_businessId': BusinessId
+                ':v_businessId': params?.BusinessId
             }
         };
 
-        const result = await dynamo.query(params).promise();
-        Response.body = JSON.stringify({
-            message: `Get ${ItemName} successfully.`,
+        const result = await dynamo.query(dynamoParams).promise();
+        params?.Response.body = JSON.stringify({
+            message: `Get ${params?.ItemName} successfully.`,
             count: result.Count,
             items: result.Items
         });
     } catch (error) {
         console.error(error);
-        Response.statusCode = 500;
-        Response.body = JSON.stringify({
-            message: `Failed to get ${ItemName}.`,
+        params?.Response.statusCode = 500;
+        params?.Response.body = JSON.stringify({
+            message: `Failed to get ${params?.ItemName}.`,
             error: error.message
         });
     }
-    return Response
+    return params?.Response
 }
 
 /**
  * @description
- * @param {string} ItemName
- * @param {string} StartKey
- * @param {string} Limit
- * @param {string} BusinessId
- * @param {string} TableName
- * @param {Object} Response
+ * @param {Object} params           Object with the parmameters required
+ * @param {string} params.ItemName
+ * @param {string} params.StartKey
+ * @param {string} params.Limit
+ * @param {string} params.BusinessId
+ * @param {string} params.TableName
+ * @param {Object} params.Response  Object with the response format to lambda functions
  * @returns {Object}
  */
-const getItems = async (ItemName, StartKey, Limit, BusinessId, TableName, Response) => {
+const getItems = async (params) => {
 
     try {
         //Create the object with the Dynamo params
-        let params;
+        let dynamoParams;
 
         //If startkey is equals to 0 is the first scan and don't have a startkey
-        if (StartKey == '0')
-            params = {
-                TableName,
-                Limit,
+        if (params?.StartKey == '0')
+            dynamoParams = {
+                TableName: params?.TableName,
+                Limit: params?.Limit,
                 KeyConditionExpression: 'businessId = :v_businessId',
                 ExpressionAttributeValues: {
-                    ':v_businessId': BusinessId
+                    ':v_businessId': params?.BusinessId
                 }
             };
         else
-            params = {
-                TableName,
-                Limit,
+            dynamoParams = {
+                TableName: params?.TableName,
+                Limit: params?.Limit,
                 ExclusiveStartKey: {
-                    "businessId": BusinessId,
-                    "id": StartKey
+                    "businessId": params?.BusinessId,
+                    "id": params?.StartKey
                 },
                 KeyConditionExpression: 'businessId = :v_businessId',
                 ExpressionAttributeValues: {
-                    ':v_businessId': BusinessId
+                    ':v_businessId': params?.BusinessId
                 }
             };
 
         //Create the object with the Dynamo params
-        const items = await dynamo.query(params).promise();
+        const items = await dynamo.query(dynamoParams).promise();
 
         let lastEvaluatedKey = "";
         if (items.LastEvaluatedKey != null)
             lastEvaluatedKey = items.LastEvaluatedKey;
 
-        Response.body = JSON.stringify({
-            message: `Get ${ItemName} list successfully.`,
+        params?.Response.body = JSON.stringify({
+            message: `Get ${params?.ItemName} list successfully.`,
             count: items.Count,
             lastEvaluatedKey,
             items: items.Items
@@ -205,67 +209,61 @@ const getItems = async (ItemName, StartKey, Limit, BusinessId, TableName, Respon
 
     } catch (error) {
         console.log(error);
-        Response.statusCode = 500;
-        Response.body = JSON.stringify({
-            message: `Failed to get ${ItemName}.`,
+        params?.Response.statusCode = 500;
+        params?.Response.body = JSON.stringify({
+            message: `Failed to get ${params?.ItemName}.`,
             error: error.message
         });
     }
 
-    return Response;
+    return params?.Response;
 }
 
 /**
  * @description
- * @param {string} ItemName
- * @param {Object} ItemParams
- * @param {Object} Request
- * @param {string} BusinessId
- * @param {string} Id
- * @param {string} TableName
- * @param {Object} Response
+ * @param {Object} params           Object with the parmameters required
+ * @param {string} params.ItemName
+ * @param {Object} params.ItemParams
+ * @param {Object} params.Request
+ * @param {Object} params.Key       Primary Key
+ * @param {string} params.TableName
+ * @param {Object} params.Response  Object with the response format to lambda functions
  * @returns {Object}
  */
-const updateItem = async (ItemName, ItemParams, Request, BusinessId, Id, TableName, Response) => {
+const updateItem = async (params) => {
 
-    const params = {
-        TableName,
-        Key: {
-            businessId: BusinessId,
-            id: Id
-        },
-        UpdateExpression: `SET ${ItemParams.map((key) => `#${key} = :${key}`).join(",")}`,
-        ExpressionAttributeNames: ItemParams.reduce((acc, key) => ({ ...acc, [`#${key}`]: key }), {}),
-        ExpressionAttributeValues: ItemParams.reduce((acc, key) => ({ ...acc, [`:${key}`]: Request[key] }), {}),
+    const dynamoParams = {
+        TableName: params?.TableName,
+        Key: params?.Key,
+        UpdateExpression: `SET ${params?.ItemParams.map((key) => `#${key} = :${key}`).join(",")}`,
+        ExpressionAttributeNames: params?.ItemParams.reduce((acc, key) => ({ ...acc, [`#${key}`]: key }), {}),
+        ExpressionAttributeValues: params?.ItemParams.reduce((acc, key) => ({ ...acc, [`:${key}`]: params?.Request[key] }), {}),
         ReturnValues: "UPDATED_NEW",
     }
     try {
-        await dynamo.update(params).promise()
-        Response.body = JSON.stringify({
-            message: `${ItemName} updated successfully.`,
-            key: {
-                businessId: BusinessId,
-                id: Id
-            },
+        await dynamo.update(dynamoParams).promise()
+        params?.Response.body = JSON.stringify({
+            message: `${params?.ItemName} updated successfully.`,
+            Key,
             itemData: Request,
         });
     } catch (error) {
         console.error(error)
-        Response.statusCode = 500
-        Response.body = JSON.stringify({
-            message: `Failed to update ${ItemName}.`,
+        params?.Response.statusCode = 500
+        params?.Response.body = JSON.stringify({
+            message: `Failed to update ${params?.ItemName}.`,
             error: error.message
         })
     }
     
-    return Response
+    return params?.Response
 }
 
 module.exports = {
     createItem,
     deleteItem,
-    getItemByName,
-    getItemOrderedByName,
+    getItemByAttribute,
+    getItemOrderedByGSI,
     getItems,
     updateItem
 };

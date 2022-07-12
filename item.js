@@ -3,54 +3,70 @@ const uuid = require('uuid');
 
 /**
  * @description
- * @param {string} ItemName
- * @param {Object} Body
- * @param {string} TableName
- * @returns {Object}
+ * @param {Object} params           Object with the parmameters required
+ * @param {string} params.ItemName
+ * @param {boolean} params.ValidateName    Boolean value to check if validate Name is required
+ * @param {Object} params.Body
+ * @param {string} params.TableName
+ * @returns {Object} 
  */
-const create_one = async (ItemName, Body, TableName) => {
+const create_one = async (params) => {
 
     let validationResponse = {};
+    let status;
     //create the response object
     let response = {
         statusCode: 200,
         isBase64Encoded: false,
         headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-        body: JSON.stringify({ message: `Create ${ItemName}.` })
+        body: JSON.stringify({ message: `Create ${params?.ItemName}.` })
     };
-
-    try {
-        validationResponse = await validate_name(ItemName, Body?.name, Body?.businessId, TableName)
-    } catch (error) {
-        console.log(error)
-        response.statusCode = 500;
-        response.body = JSON.stringify({
-            message: `Failed to validate ${ItemName}.`,
-            error: error.message
-        })
+    if (params?.ValidateName) {
+        try {
+            validationResponse = await validate_name({
+                ItemName: params?.ItemName,
+                Name: params?.Body?.name,
+                BusinessId: params?.Body?.businessId,
+                TableName: params?.TableName
+            });
+        } catch (error) {
+            console.log(error)
+            response.statusCode = 500;
+            response.body = JSON.stringify({
+                message: `Failed to validate ${params?.ItemName}.`,
+                error: error.message
+            })
+        }
+        const bodyReq = JSON.parse(validationResponse.body);
+        status = bodyReq.status;
+    } else {
+        status = true;
     }
-    const { status } = JSON.parse(validationResponse.body);
     if (status) {
         const id = uuid.v4();
         const newItem = {
             id,
-            ...Body
+            ...params?.Body
         };
         try {
-            response = await dynamoDB.createItem(ItemName, newItem, TableName, response);
+            response = await dynamoDB.createItem({
+                ItemName: params?.ItemName,
+                Item: newItem,
+                TableName: params?.TableName
+            });
         } catch (error) {
             console.error(error);
             response.statusCode = 500;
             response.body = JSON.stringify({
-                message: `Failed to create ${ItemName}`,
+                message: `Failed to create ${params?.ItemName}`,
                 error: error.message
             });
         }
     } else {
         response.statusCode = 403;
         response.body = JSON.stringify({
-            message: `Failed to create ${ItemName}.`,
-            error: `${ItemName} "${Body?.name}" already exists.`
+            message: `Failed to create ${params?.ItemName}.`,
+            error: `${ItemName} "${params?.Body?.name}" already exists.`
         });
     }
     return response;
@@ -59,26 +75,35 @@ const create_one = async (ItemName, Body, TableName) => {
 
 /**
  * @description
- * @param {string} ItemName
- * @param {string} Id
- * @param {string} BusinessId
- * @param {string} TableName
+ * @param {Object} params           Object with the parmameters required
+ * @param {string} params.ItemName
+ * @param {string} params.Id
+ * @param {string} params.BusinessId
+ * @param {string} params.TableName
  * @returns {Object}
  */
-const delete_one = async (ItemName, Id, BusinessId, TableName) => {
+const delete_one = async (params) => {
     let response = {
         isBase64Encoded: false,
         statusCode: 200,
-        body: JSON.stringify({ message: `Delete ${ItemName}.` }),
+        body: JSON.stringify({ message: `Delete ${params?.ItemName}.` }),
         headers: { 'Content-Type': 'application/json;charset=UTF-8' }
     }
     try {
-        response = await dynamoDB.deleteItem(ItemName, Id, BusinessId, TableName, response)
+        response = await dynamoDB.deleteItem({
+            Key: {
+                businessId: params?.BusinessId,
+                id: params?.Id
+            },
+            ItemName: params?.ItemName,
+            TableName: params?.TableName,
+            response
+        });
     } catch (error) {
         console.log(error)
         response.statusCode = 500
         response.body = JSON.stringify({
-            message: `Failed to delete ${ItemName}.`,
+            message: `Failed to delete ${params?.ItemName}.`,
             error: error.message
         })
     }
@@ -87,30 +112,38 @@ const delete_one = async (ItemName, Id, BusinessId, TableName) => {
 
 /**
  * @description
- * @param {string} ItemName
- * @param {string} StartKey
- * @param {string} Limit
- * @param {string} BusinessId
- * @param {string} TableName
+ * @param {Object} params           Object with the parmameters required
+ * @param {string} params.ItemName
+ * @param {string} params.StartKey
+ * @param {string} params.Limit
+ * @param {string} params.BusinessId
+ * @param {string} params.TableName
  * @returns {Object}
  */
-const get_all = async (ItemName, StartKey, Limit, BusinessId, TableName) => {
+const get_all = async (params) => {
 
     //create the response object
     let response = {
         statusCode: 200,
         isBase64Encoded: false,
         headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-        body: JSON.stringify({ message: `Get all ${ItemName}.` })
+        body: JSON.stringify({ message: `Get all ${params?.ItemName}.` })
     };
 
     try {
-        response = await dynamoDB.getItems(ItemName, StartKey, Limit, BusinessId, TableName, response);
+        response = await dynamoDB.getItems({
+            ItemName: params?.ItemName,
+            StartKey: params?.StartKey,
+            Limit: params?.Limit,
+            BusinessId: params?.BusinessId,
+            TableName: params?.TableName,
+            response
+        });
     } catch (error) {
         console.error(error);
         response.statusCode = 500;
         response.body = JSON.stringify({
-            message: `Failed to get ${ItemName}.`,
+            message: `Failed to get ${params?.ItemName}.`,
             error: error.message
         });
     }
@@ -120,29 +153,38 @@ const get_all = async (ItemName, StartKey, Limit, BusinessId, TableName) => {
 
 /**
  * @description
- * @param {string} ItemName
- * @param {Object} Name
- * @param {string} BusinessId
- * @param {string} TableName
+ * @param {Object} params           Object with the parmameters required
+ * @param {string} params.ItemName
+ * @param {Object} params.Name
+ * @param {string} params.BusinessId
+ * @param {string} params.TableName
  * @returns {Object}
  */
-const get_by_name = async (ItemName, Name, BusinessId, TableName) => {
+const get_by_name = async (params) => {
 
     //create the response object
     let response = {
         statusCode: 200,
         isBase64Encoded: false,
         headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-        body: JSON.stringify({ message: `Get ${ItemName}.` })
+        body: JSON.stringify({ message: `Get ${params?.ItemName}.` })
     };
 
     try {
-        response = await dynamoDB.getItemByName(ItemName, Name, BusinessId, TableName, response);
+        response = await dynamoDB.getItemByName({
+            ItemName: params?.ItemName,
+            GSIName: 'GSIFindByName',
+            AttributeName: 'name',
+            AttributeValue: params?.Name,
+            BusinessId: params?.BusinessId,
+            TableName: params?.TableName,
+            response
+        });
     } catch (error) {
         console.error(error);
         response.statusCode = 500;
         response.body = JSON.stringify({
-            message: `Failed to get ${ItemName}.`,
+            message: `Failed to get ${params?.ItemName}.`,
             error: error.message
         });
     }
@@ -152,13 +194,56 @@ const get_by_name = async (ItemName, Name, BusinessId, TableName) => {
 
 /**
  * @description
- * @param {string} ItemName
- * @param {string} Order    Send DESC for descending order
- * @param {string} BusinessId
- * @param {string} TableName
+ * @param {Object} params             Object with the parmameters required
+ * @param {string} params.ItemName
+ * @param {string} params.DateValue   Attribute value to find
+ * @param {string} params.BusinessId
+ * @param {string} params.TableName
  * @returns {Object}
  */
-const get_ordered = async (ItemName, Order, BusinessId, TableName) => {
+const get_by_date = async (params) => {
+
+    //create the response object
+    let response = {
+        statusCode: 200,
+        isBase64Encoded: false,
+        headers: { 'Content-Type': 'application/json;charset=UTF-8' },
+        body: JSON.stringify({ message: `Get ${params?.ItemName}.` })
+    };
+
+    try {
+        response = await dynamoDB.getItemByAttribute( {
+                ItemName: params?.ItemName,
+                GSIName: 'GSIFindByDate',
+                AttributeName: 'date',
+                AttributeValue: params?.DateValue,
+                BusinessId: params?.BusinessId,
+                TableName: params?.TableName,
+                response
+        });
+    } catch (error) {
+        console.error(error);
+        response.statusCode = 500;
+        response.body = JSON.stringify({
+            message: `Failed to get ${params?.ItemName}.`,
+            error: error.message
+        });
+    }
+
+    return response;
+}
+
+/**
+ * @description
+ * @param {Object} params           Object with the parmameters required
+ * @param {string} params.ItemName
+ * @param {string} params.Order    Send DESC for descending order
+ * @param {string} params.GSIName  Global Secondary Index to query
+ * @param {string} params.BusinessId
+ * @param {string} params.TableName
+ * @returns {Object}
+ */
+const get_ordered = async (params) => {
 
     //create the response object
     let response = {
@@ -170,15 +255,22 @@ const get_ordered = async (ItemName, Order, BusinessId, TableName) => {
     try {
         //Parse ORDER String to a boolean value
         //True:Ascending  - False:descending
-        let sorting = Order == 'DESC' ?
+        let Sorting = params?.Order == 'DESC' ?
             false : true
-        response = await dynamoDB.getItemOrderedByName(sorting, ItemName, BusinessId, TableName, response);
+        response = await dynamoDB.getItemOrderedByGSI({
+            Sorting, 
+            ItemName: params?.ItemName, 
+            GSIName: params?.GSIName, 
+            BusinessId: params?.BusinessId, 
+            TableName: params?.TableName, 
+            response
+        });
 
     } catch (error) {
         console.error(error);
         response.statusCode = 500;
         response.body = JSON.stringify({
-            message: `Failed to get ${ItemName}.`,
+            message: `Failed to get ${params?.ItemName}.`,
             error: error.message
         });
     }
@@ -188,91 +280,122 @@ const get_ordered = async (ItemName, Order, BusinessId, TableName) => {
 
 /**
  * @description
- * @param {string} ItemName
- * @param {Object} Req
- * @param {string} BusinessId
- * @param {string} Id
- * @param {string} TableName
+ * @param {Object} params           Object with the parmameters required
+ * @param {string} params.ItemName
+ * @param {boolean} params.ValidateName    Boolean value to check if validate Name is required
+ * @param {Object} params.Req
+ * @param {string} params.BusinessId
+ * @param {string} params.Id
+ * @param {string} params.TableName
  * @returns {Object}
  */
-const update_one = async (ItemName, Req, BusinessId, Id, TableName) => {
+const update_one = async (params) => {
 
     let validationResponse = {}
+    let status;
+
     //create the response object
-    
     let response = {
         statusCode: 200,
         isBase64Encoded: false,
         headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-        body: JSON.stringify({ message: `Update ${ItemName}.` })
+        body: JSON.stringify({ message: `Update ${params?.ItemName}.` })
     };
 
-    // Validate name before update
-    try {
-        validationResponse = await validate_name(ItemName, Req?.name, BusinessId, TableName)
-    } catch (error) {
-        response.statusCode = 500
-        response.body = JSON.stringify({
-            message: "Failed to validate item.",
-            error: error.message
-        })
-    }
-    try{
-        //Check response
-        const { status, item } = JSON.parse(validationResponse.body);
-        if (status || item.id == Id) {
-            const ItemParams = Object.keys(Req);
-            response = await dynamoDB.updateItem(ItemName, ItemParams, Req, BusinessId, Id, TableName, response);
-        } else {
-            response.statusCode = 403;
+    //  check if validate Name is required
+    if (params?.ValidateName) {
+        // Validate name before update
+        try {
+            validationResponse = await validate_name({
+                ItemName: params?.ItemName,
+                Name: params?.Req?.name,
+                BusinessId: params?.BusinessId,
+                TableName: params?.TableName
+            });
+        } catch (error) {
+            response.statusCode = 500
             response.body = JSON.stringify({
-                message: "Failed to update item.",
-                error: `Item "${Name}" already exists.`,
+                message: "Failed to validate item.",
+                error: error.message
             })
         }
-    } catch (error) {
-        console.error(error);
-        response.statusCode = 500;
-        response.body = JSON.stringify({
-            message: `Failed to update ${ItemName}`,
-            error: error.message
-        });
+        const bodyReq = JSON.parse(validationResponse.body);
+        status = bodyReq.status;
     }
+    else {
+        status = true;
+    }
+    if (status || bodyReq?.item?.id == Id) {
+        try {
+            const ItemParams = Object.keys(params?.Req);
+            response = await dynamoDB.updateItem({
+                ItemName: params?.ItemName, 
+                ItemParams, 
+                Req: params?.Req, 
+                Key: {
+                    businessId: params?.BusinessId,
+                    id: params?.Id
+                }, 
+                TableName: params?.TableName, 
+                response
+            });
+        } catch (error) {
+            console.error(error);
+            response.statusCode = 500;
+            response.body = JSON.stringify({
+                message: `Failed to update ${params?.ItemName}`,
+                error: error.message
+            });
+        }
+    }else {
+        response.statusCode = 403;
+        response.body = JSON.stringify({
+            message: "Failed to update item.",
+            error: `Item -${params?.Req?.Name}- already exists.`,
+        })
+    }
+
     return response;
 }
 
 /**
  * @description
- * @param {string} ItemName
- * @param {string} Name
- * @param {string} BusinessId
- * @param {string} TableName
+ * @param {Object} params           Object with the parmameters required
+ * @param {string} params.ItemName
+ * @param {string} params.Name
+ * @param {string} params.BusinessId
+ * @param {string} params.TableName
  * @returns {Object}
  */
-const validate_name = async (ItemName, Name, BusinessId, TableName) => {
+const validate_name = async (params) => {
 
     let response = {
         statusCode: 200,
         isBase64Encoded: false,
         headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-        body: JSON.stringify({ message: `Validate ${ItemName} name.` })
+        body: JSON.stringify({ message: `Validate ${params?.ItemName} name.` })
     };
 
     try {
-        response = await get_by_name(ItemName, Name, BusinessId, TableName);
+        response = await get_by_name({
+            ItemName: params?.ItemName, 
+            Name: params?.Name, 
+            BusinessId: params?.BusinessId, 
+            TableName: params?.TableName
+        });
         let result = JSON.parse(response.body);
         // Check if the result.Count contain a value, the name already exists
         if (result.count == 0) {
             response.body = JSON.stringify({
                 status: true,
-                message: `${ItemName} name ${Name} available.`,
+                message: `${params?.ItemName} name ${params?.Name} available.`,
             });
         }
         else {
             response.statusCode = 403;
             response.body = JSON.stringify({
                 status: false,
-                message: `${ItemName} ${Name} already exists.`,
+                message: `${params?.ItemName} ${params?.Name} already exists.`,
                 item: result.items[0]
             });
         }
@@ -281,7 +404,7 @@ const validate_name = async (ItemName, Name, BusinessId, TableName) => {
         response.statusCode = 500;
         response.body = JSON.stringify({
             status: false,
-            message: `Failed to validate ${ItemName}.`,
+            message: `Failed to validate ${params?.ItemName}.`,
             error: error.message
         });
     }
@@ -293,6 +416,7 @@ module.exports = {
     delete_one,
     get_all,
     get_by_name,
+    get_by_date,
     get_ordered,
     update_one,
     validate_name
