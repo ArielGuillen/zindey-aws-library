@@ -13,7 +13,7 @@ const dynamo = new DynamoDB.DocumentClient({
  * @param {String} options.ItemName
  * @param {Object} options.Item
  * @param {String} options.TableName
- * @returns {Object} response
+ * @returns {Object}
  */
 const createItem = async (options) => {
   let response = {}
@@ -39,64 +39,23 @@ const createItem = async (options) => {
 
 /**
  * @description
- * @param {string} ItemName
- * @param {Object} Item
- * @param {string} TableName
+ * @param {Object} params
+ * @param {string} params.TableName
+ * @param {Object} params.Key
+ * @param {string} params.Key.id
  * @returns {Object}
  */
-const updateItem = async (ItemName, Item, TableName) => {
-  let validationResponse = {}
-  const response = {
-    statusCode: 200,
-    isBase64Encoded: false,
-    body: JSON.stringify({ message: "Update item." }),
-    headers: { 'Content-Type': 'application/json;charset=UTF-8' }
-  }
-  // Get the id from the url params
-  const { id } = event?.pathParameters
-  // Transform the JSON string of body value to a javascript object
-  const req = JSON.parse(event.body)
-  const paramsArr = Object.keys(req)
-  if(req?.name){
-    /* try {
-      validationResponse = await itemExist( LAMBDA_NAME, req?.name )
-    } catch (error) {
-      response.statusCode = 500
-      response.body = JSON.stringify({
-        message: "Failed to validate item.",
+const getItemById = async (params) => {
+  let response = {}
+  try {
+    const data = await dynamo.get(params).promise()
+    response.body = JSON.stringify(data?.Item)
+  } catch (error) {
+    console.log( error )
+    response.statusCode = 500
+    response.body = JSON.stringify( {
+        message: "Failed to get item.",
         error: error.message
-      })
-    } */
-  validationResponse.status = 200
-  } else validationResponse.status = true
-  if ( validationResponse?.status || validationResponse?.id === id ) {
-    const params = {
-      TableName,
-      Key: { id },
-      UpdateExpression: `SET ${paramsArr.map((key) => `#${key} = :${key}`).join(",")}`,
-      ExpressionAttributeNames: paramsArr.reduce((acc, key) => ({ ...acc, [`#${key}`]: key }), {}),
-      ExpressionAttributeValues: paramsArr.reduce((acc, key) => ({ ...acc, [`:${key}`]: req[key] }), {}),
-      ReturnValues: "UPDATED_NEW",
-    }
-    try {
-      await db.update(params).promise()
-      response.body = JSON.stringify({
-        message: "Item updated successfully.",
-        item: req,
-      })
-    } catch (error) {
-      console.error(error)
-      response.statusCode = 500
-      response.body = JSON.stringify({
-        message: "Failed to update item.",
-        error: error.message
-      })
-    }
-  } else {
-    response.statusCode = 403
-    response.body = JSON.stringify({
-      message: "Failed to update item.",
-      error: `Item "${req?.name}" already exists.`,
     })
   }
   return response
@@ -104,13 +63,63 @@ const updateItem = async (ItemName, Item, TableName) => {
 
 /**
  * @description
- * @param {string} ItemName
- * @param {Object} Item
- * @param {string} TableName
+ * @param {Object} options
+ * @param {Object} options.params
+ * @param {string} options.params.TableName
+ * @param {Object} options.params.Key
+ * @param {string} options.params.Key.id
+ * @param {Object} options.newData
  * @returns {Object}
  */
-const deleteItem = async (ItemName, Id, TableName) => {
+const updateItem = async (options) => {
+  let response = {}
+  const paramsArr = Object.keys(options?.newData)
+  const params = {
+    ...options?.params,
+    UpdateExpression: `SET ${paramsArr.map((key) => `#${key} = :${key}`).join(",")}`,
+    ExpressionAttributeNames: paramsArr.reduce((acc, key) => ({ ...acc, [`#${key}`]: key }), {}),
+    ExpressionAttributeValues: paramsArr.reduce((acc, key) => ({ ...acc, [`:${key}`]: options?.newData[key] }), {}),
+    ReturnValues: "UPDATED_NEW",
+  }
+  try {
+    const updatedItem = await dynamo.update(params).promise()
+    response.body = JSON.stringify({
+      message: "Item updated successfully.",
+      item: options?.newData,
+    })
+  } catch (error) {
+    console.error(error)
+    response.statusCode = 500
+    response.body = JSON.stringify({
+      message: "Failed to update item.",
+      error: error.message
+    })
+  }
+  return response
+}
 
+/**
+ * @description
+ * @param {Object} params
+ * @param {string} params.TableName
+ * @param {Object} params.Key
+ * @param {string} params.Key.id
+ * @returns {Object}
+ */
+const deleteItemById = async (params) => {
+  let response = {}
+  try {
+    await dynamo.delete(params).promise()
+    response.body = JSON.stringify({ message: "Item deleted successfully." })
+  } catch (error) {
+    console.log(error)
+    response.statusCode = 500
+    response.body = JSON.stringify({
+      message: "Failed to delete item.",
+      error: error.message
+    })
+  }
+  return response
 }
 
 /**
@@ -194,10 +203,11 @@ const getItemByName = async(options) => {
 
 const dynamoDB = {
   createItem,
+  getItemById,
   getItemByName,
   getItemOrderedByName,
   updateItem,
-  deleteItem
+  deleteItemById
 }
 
 export default dynamoDB
