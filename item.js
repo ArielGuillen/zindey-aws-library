@@ -10,7 +10,7 @@ const uuid = require('uuid');
  * @param {string} params.TableName
  * @returns {Object} 
  */
-const create_one = async (params) => {
+ const create_one = async (params) => {
 
     let validationResponse = {};
     let status;
@@ -30,18 +30,19 @@ const create_one = async (params) => {
                 TableName: params?.TableName
             });
         } catch (error) {
-            console.log(error)
+            console.log(error);
             response.statusCode = 500;
             response.body = JSON.stringify({
                 message: `Failed to validate ${params?.ItemName}.`,
                 error: error.message
-            })
+            });
         }
         const bodyReq = JSON.parse(validationResponse.body);
         status = bodyReq.status;
     } else {
         status = true;
     }
+    status = true;
     if (status) {
         const id = uuid.v4();
         const newItem = {
@@ -52,7 +53,8 @@ const create_one = async (params) => {
             response = await dynamoDB.createItem({
                 ItemName: params?.ItemName,
                 Item: newItem,
-                TableName: params?.TableName
+                TableName: params?.TableName,
+                Response: response
             });
         } catch (error) {
             console.error(error);
@@ -66,11 +68,11 @@ const create_one = async (params) => {
         response.statusCode = 403;
         response.body = JSON.stringify({
             message: `Failed to create ${params?.ItemName}.`,
-            error: `${ItemName} "${params?.Body?.name}" already exists.`
+            error: `${params?.ItemName} "${params?.Body?.name}" already exists.`
         });
     }
     return response;
-}
+};
 
 
 /**
@@ -88,7 +90,7 @@ const delete_one = async (params) => {
         statusCode: 200,
         body: JSON.stringify({ message: `Delete ${params?.ItemName}.` }),
         headers: { 'Content-Type': 'application/json;charset=UTF-8' }
-    }
+    };
     try {
         response = await dynamoDB.deleteItem({
             Key: {
@@ -97,18 +99,18 @@ const delete_one = async (params) => {
             },
             ItemName: params?.ItemName,
             TableName: params?.TableName,
-            response
+            Response: response
         });
     } catch (error) {
-        console.log(error)
-        response.statusCode = 500
+        console.log(error);
+        response.statusCode = 500;
         response.body = JSON.stringify({
             message: `Failed to delete ${params?.ItemName}.`,
             error: error.message
-        })
+        });
     }
-    return response
-}
+    return response;
+};
 
 /**
  * @description
@@ -137,7 +139,7 @@ const get_all = async (params) => {
             Limit: params?.Limit,
             BusinessId: params?.BusinessId,
             TableName: params?.TableName,
-            response
+            Response: response
         });
     } catch (error) {
         console.error(error);
@@ -149,7 +151,7 @@ const get_all = async (params) => {
     }
 
     return response;
-}
+};
 
 /**
  * @description
@@ -171,14 +173,14 @@ const get_by_name = async (params) => {
     };
 
     try {
-        response = await dynamoDB.getItemByName({
+        response = await dynamoDB.getItemByAttribute({
             ItemName: params?.ItemName,
             GSIName: 'GSIFindByName',
             AttributeName: 'name',
             AttributeValue: params?.Name,
             BusinessId: params?.BusinessId,
             TableName: params?.TableName,
-            response
+            Response: response
         });
     } catch (error) {
         console.error(error);
@@ -190,7 +192,7 @@ const get_by_name = async (params) => {
     }
 
     return response;
-}
+};
 
 /**
  * @description
@@ -219,7 +221,7 @@ const get_by_date = async (params) => {
                 AttributeValue: params?.DateValue,
                 BusinessId: params?.BusinessId,
                 TableName: params?.TableName,
-                response
+                Response: response
         });
     } catch (error) {
         console.error(error);
@@ -231,7 +233,7 @@ const get_by_date = async (params) => {
     }
 
     return response;
-}
+};
 
 /**
  * @description
@@ -250,20 +252,21 @@ const get_ordered = async (params) => {
         statusCode: 200,
         isBase64Encoded: false,
         headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-        body: JSON.stringify({ message: `Get ${ItemName}.` })
+        body: JSON.stringify({ message: `Get ${params?.ItemName}.` })
     };
     try {
         //Parse ORDER String to a boolean value
         //True:Ascending  - False:descending
-        let Sorting = params?.Order == 'DESC' ?
-            false : true
+        let Sorting = true;
+        if( params?.Order == 'DESC')
+            Sorting = false;
         response = await dynamoDB.getItemOrderedByGSI({
-            Sorting, 
+            Sorting: Sorting, 
             ItemName: params?.ItemName, 
             GSIName: params?.GSIName, 
             BusinessId: params?.BusinessId, 
             TableName: params?.TableName, 
-            response
+            Response: response
         });
 
     } catch (error) {
@@ -276,14 +279,14 @@ const get_ordered = async (params) => {
     }
 
     return response;
-}
+};
 
 /**
  * @description
  * @param {Object} params           Object with the parmameters required
  * @param {string} params.ItemName
  * @param {boolean} params.ValidateName    Boolean value to check if validate Name is required
- * @param {Object} params.Req
+ * @param {Object} params.Body
  * @param {string} params.BusinessId
  * @param {string} params.Id
  * @param {string} params.TableName
@@ -291,8 +294,8 @@ const get_ordered = async (params) => {
  */
 const update_one = async (params) => {
 
-    let validationResponse = {}
-    let status;
+    let validationResponse = {};
+    let status, bodyReq;
 
     //create the response object
     let response = {
@@ -308,36 +311,36 @@ const update_one = async (params) => {
         try {
             validationResponse = await validate_name({
                 ItemName: params?.ItemName,
-                Name: params?.Req?.name,
+                Name: params?.Body?.name,
                 BusinessId: params?.BusinessId,
                 TableName: params?.TableName
             });
         } catch (error) {
-            response.statusCode = 500
+            response.statusCode = 500;
             response.body = JSON.stringify({
                 message: "Failed to validate item.",
                 error: error.message
-            })
+            });
         }
-        const bodyReq = JSON.parse(validationResponse.body);
+        bodyReq = JSON.parse(validationResponse.body);
         status = bodyReq.status;
     }
     else {
         status = true;
     }
-    if (status || bodyReq?.item?.id == Id) {
+    if (status || bodyReq?.item?.id == params?.Id) {
         try {
-            const ItemParams = Object.keys(params?.Req);
+            const ItemParams = Object.keys(params?.Body);
             response = await dynamoDB.updateItem({
                 ItemName: params?.ItemName, 
                 ItemParams, 
-                Req: params?.Req, 
+                Request: params?.Body, 
                 Key: {
                     businessId: params?.BusinessId,
                     id: params?.Id
                 }, 
                 TableName: params?.TableName, 
-                response
+                Response: response
             });
         } catch (error) {
             console.error(error);
@@ -351,12 +354,12 @@ const update_one = async (params) => {
         response.statusCode = 403;
         response.body = JSON.stringify({
             message: "Failed to update item.",
-            error: `Item -${params?.Req?.Name}- already exists.`,
-        })
+            error: `Item -${params?.Body?.Name}- already exists.`,
+        });
     }
 
     return response;
-}
+};
 
 /**
  * @description
@@ -381,7 +384,8 @@ const validate_name = async (params) => {
             ItemName: params?.ItemName, 
             Name: params?.Name, 
             BusinessId: params?.BusinessId, 
-            TableName: params?.TableName
+            TableName: params?.TableName,
+            Response: response
         });
         let result = JSON.parse(response.body);
         // Check if the result.Count contain a value, the name already exists
@@ -409,7 +413,7 @@ const validate_name = async (params) => {
         });
     }
     return response;
-}
+};
 
 module.exports = {
     create_one,

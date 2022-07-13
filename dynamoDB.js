@@ -20,20 +20,20 @@ const createItem = async (params) => {
             Item: params?.Item
         }).promise();
 
-        params?.Response.body = JSON.stringify({
+        params.Response.body = JSON.stringify({
             message: `${params?.ItemName} created successfully.`,
-            item: Item
+            item: params?.Item
         });
     } catch (error) {
         console.error(error);
-        params?.Response.statusCode = 500;
-        params?.Response.body = JSON.stringify({
+        params.Response.statusCode = 500;
+        params.Response.body = JSON.stringify({
             message: `Failed to create ${params?.ItemName}.`,
             error: error.message
         });
     }
-    return params?.Response
-}
+    return params?.Response;
+};
 
 /**
  * @description
@@ -49,20 +49,20 @@ const deleteItem = async (params) => {
     const dynamoParams = {
         TableName: params?.TableName,
         Key: params?.Key
-    }
+    };
     try {
-        await dynamo.delete(dynamoParams).promise()
-        params?.Response.body = JSON.stringify({ message: `${params?.ItemName} deleted successfully.` })
+        await dynamo.delete(dynamoParams).promise();
+        params.Response.body = JSON.stringify({ message: `${params?.ItemName} deleted successfully.` });
     } catch (error) {
         console.error(error);
-        params?.Response.statusCode = 500;
-        params?.Response.body = JSON.stringify({
+        params.Response.statusCode = 500;
+        params.Response.body = JSON.stringify({
             message: `Failed to delete ${params?.ItemName}.`,
             error: error.message
         });
     }
-    return params?.Response
-}
+    return params?.Response;
+};
 
 /**
  * @description
@@ -94,7 +94,7 @@ const getItemByAttribute = async (params) => {
         };
 
         const result = await dynamo.query(dynamoParams).promise();
-        params?.Response.body = JSON.stringify({
+        params.Response.body = JSON.stringify({
             message: `Get ${params?.ItemName} successfully.`,
             count: result.Count,
             items: result.Items
@@ -102,14 +102,14 @@ const getItemByAttribute = async (params) => {
 
     } catch (error) {
         console.error(error);
-        params?.Response.statusCode = 500;
-        params?.Response.body = JSON.stringify({
+        params.Response.statusCode = 500;
+        params.Response.body = JSON.stringify({
             message: `Failed to get ${params?.ItemName}.`,
             error: error.message
         });
     }
-    return params?.Response
-}
+    return params?.Response;
+};
 
 /**
  * @description
@@ -136,21 +136,21 @@ const getItemOrderedByGSI = async (params) => {
         };
 
         const result = await dynamo.query(dynamoParams).promise();
-        params?.Response.body = JSON.stringify({
+        params.Response.body = JSON.stringify({
             message: `Get ${params?.ItemName} successfully.`,
             count: result.Count,
             items: result.Items
         });
     } catch (error) {
         console.error(error);
-        params?.Response.statusCode = 500;
-        params?.Response.body = JSON.stringify({
+        params.Response.statusCode = 500;
+        params.Response.body = JSON.stringify({
             message: `Failed to get ${params?.ItemName}.`,
             error: error.message
         });
     }
-    return params?.Response
-}
+    return params?.Response;
+};
 
 /**
  * @description
@@ -200,7 +200,7 @@ const getItems = async (params) => {
         if (items.LastEvaluatedKey != null)
             lastEvaluatedKey = items.LastEvaluatedKey;
 
-        params?.Response.body = JSON.stringify({
+        params.Response.body = JSON.stringify({
             message: `Get ${params?.ItemName} list successfully.`,
             count: items.Count,
             lastEvaluatedKey,
@@ -209,15 +209,15 @@ const getItems = async (params) => {
 
     } catch (error) {
         console.log(error);
-        params?.Response.statusCode = 500;
-        params?.Response.body = JSON.stringify({
+        params.Response.statusCode = 500;
+        params.Response.body = JSON.stringify({
             message: `Failed to get ${params?.ItemName}.`,
             error: error.message
         });
     }
 
     return params?.Response;
-}
+};
 
 /**
  * @description
@@ -239,25 +239,25 @@ const updateItem = async (params) => {
         ExpressionAttributeNames: params?.ItemParams.reduce((acc, key) => ({ ...acc, [`#${key}`]: key }), {}),
         ExpressionAttributeValues: params?.ItemParams.reduce((acc, key) => ({ ...acc, [`:${key}`]: params?.Request[key] }), {}),
         ReturnValues: "UPDATED_NEW",
-    }
+    };
     try {
-        await dynamo.update(dynamoParams).promise()
-        params?.Response.body = JSON.stringify({
+        await dynamo.update(dynamoParams).promise();
+        params.Response.body = JSON.stringify({
             message: `${params?.ItemName} updated successfully.`,
-            Key,
-            itemData: Request,
+            Key: params?.Key,
+            itemData: params?.Request,
         });
     } catch (error) {
-        console.error(error)
-        params?.Response.statusCode = 500
-        params?.Response.body = JSON.stringify({
+        console.error(error);
+        params.Response.statusCode = 500;
+        params.Response.body = JSON.stringify({
             message: `Failed to update ${params?.ItemName}.`,
             error: error.message
-        })
+        });
     }
     
-    return params?.Response
-}
+    return params.Response;
+};
 
 module.exports = {
     createItem,
