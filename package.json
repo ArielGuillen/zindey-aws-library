@@ -2,10 +2,11 @@
   "name": "zindey-aws-library",
   "version": "1.0.15",
   "description": "aws services module",
-  "main": "index.js",
+  "main": "src/index.mjs",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --config ./jest.config.json",
+    "test:watch": "npm run test -- --watch"
   },
   "keywords": [
     "aws",
@@ -17,6 +18,7 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.118.1",
     "@aws-sdk/client-lambda": "^3.118.1",
+    "aws-sdk": "^2.1173.0",
     "csvtojson": "^2.0.10",
     "uuid": "^8.3.2"
   },

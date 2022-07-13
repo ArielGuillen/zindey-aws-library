@@ -2,7 +2,7 @@ import { DynamoDB } from 'aws-sdk'
 
 const dynamo = new DynamoDB.DocumentClient({
   region: 'local',
-  endpoint: 'http://host.docker.internal:8000'
+  endpoint: 'http://localhost:8000'
 })
 
 // --------------------- Dynamo Operations --------------------------

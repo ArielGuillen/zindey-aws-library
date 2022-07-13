@@ -1,0 +1,17 @@
+volumes:
+  dynamodb-data:
+    name: dynamodb-data
+    driver: local
+    external: false
+services:
+  dynamodb-local:
+    entrypoint: ["java", "-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "./data"]
+    image: "amazon/dynamodb-local:latest"
+    container_name: dynamodb-local
+    user: root
+    ports:
+      - "8000:8000"
+    restart: always
+    volumes:
+      - dynamodb-data:/home/dynamodblocal/data
+    working_dir: /home/dynamodblocal
